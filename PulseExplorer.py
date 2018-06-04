@@ -12,6 +12,21 @@ def gaussian_noise(x,a,m,s):
     #return((a/np.sqrt(2*3.14159)/s * np.exp(-0.5 * (x-m) * (x-m) / s**2) )+200+.1*np.random.randn(len(x)))
     return((a * np.exp(-0.5 * (x-m) * (x-m) / s**2) )+200+np.random.randn(len(x)))
 
+def linear_decay(x,a,m,s):
+    return(-a*x + m + s*np.random.randn(len(x)))
+
+def square_pulse(x,a,m,s):
+    return(-a*x + m + s*np.random.randn(len(x)))
+
+def square_wave(x,a,m,s):
+    return(-a*x + m + s*np.random.randn(len(x)))
+
+def triangle_pulse(x,a,m,s):
+    return(-a*x + m + s*np.random.randn(len(x)))
+
+def exp_pulse(x,a,m,s):
+    return(a*np.exp((-x+m)/s)+np.random.randn(len(x)))
+
 def CFD(times,res,L,G):
     retvec = np.zeros(len(res))
     zidx = times.searchsorted(0)
@@ -31,6 +46,15 @@ def fxn(x,f_name,params):
         else:
             print("Parameters mismatched to model or not found")
             return(False)
+    elif f_name == "linear_decay":
+        if all( i in params.keys() for i in ('amp','mean','sigma')):
+            return(
+                linear_decay(x,params['amp'].value,params['mean'].value,params['sigma'].value)
+            )
+        else:
+            print("Parameters mismatched to model or not found")
+            return(False)
+
     else:
         print("Model not implemented or not found")
         return(False)
@@ -47,7 +71,8 @@ g0=200
 norm = 1 #np.sqrt(2*3.14159)*s0
 margin = 2
 
-model = "gaussian_noise"
+#model = "gaussian_noise"
+model = "linear_decay"
 variables = Parameters()
 variables.add_many(('amp',200,True,1,1000,None,None),
            ('mean',300,True,1,1000,None,None),
