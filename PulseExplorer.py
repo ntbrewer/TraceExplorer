@@ -24,8 +24,8 @@ def square_wave(x,a,m,s):
 def triangle_pulse(x,a,m,s):
     return(-a*x + m + s*np.random.randn(len(x)))
 
-def exp_pulse(x,a,m,s):
-    return(a*np.exp((-x+m)/s)+np.random.randn(len(x)))
+def vandle_pulse(x,a,m,r,f):
+    return(a*np.exp((-x+m)/f)*(1-np.exp(-(x-m)**4)/r)+np.random.randn(len(x)))
 
 def CFD(times,res,L,G):
     retvec = np.zeros(len(res))
@@ -54,6 +54,14 @@ def fxn(x,f_name,params):
         else:
             print("Parameters mismatched to model or not found")
             return(False)
+    elif f_name == "vandle_pulse":
+        if all( i in params.keys() for i in ('amp','mean','rise','fall')):
+            return(
+                vandle_pulse(x,params['amp'].value,params['mean'].value,params['rise'].value,params['rise'].value)
+            )
+        else:
+            print("Parameters mismatched to model or not found")
+            return(False)
 
     else:
         print("Model not implemented or not found")
@@ -71,41 +79,68 @@ g0=200
 norm = 1 #np.sqrt(2*3.14159)*s0
 margin = 2
 
-#model = "gaussian_noise"
-model = "linear_decay"
+model = "vandle_pulse"
+#model = "linear_decay"
 variables = Parameters()
-variables.add_many(('amp',200,True,1,1000,None,None),
+
+if model == "gaussian_noise":
+    variables.add_many(('amp',200,True,1,1000,None,None),
            ('mean',300,True,1,1000,None,None),
            ('sigma',150,True,1,1000,None,None))
-
+elif model == "linear decay":
+    variables.add_many(('amp',200,True,1,1000,None,None),
+           ('mean',300,True,1,1000,None,None),
+           ('sigma',150,True,1,1000,None,None))
+elif model == "vandle_pulse":
+    variables.add_many(('amp',20,True,.01,100,None,None),
+           ('mean',200,True,1,1000,None,None),
+           ('rise',300,True,10,10000,None,None),
+           ('fall',150,True,10,10000,None,None))    
+             
 pulse = fxn(t,model,variables) #gaussian_noise(t,a0*norm,m0,s0)
 ff = CFD(t,pulse/norm,l0,g0)
 
 l,= ax1.plot(t,pulse,lw=2,color='red')
 ll,= ax2.plot(t,ff,lw=2,color='blue')
 ax2.set_xlim(0,2000)
-ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
-ax2.set_ylim(ff.min()-margin,ff.max()+margin)
+#ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
+#ax2.set_ylim(ff.min()-margin,ff.max()+margin)
 #plt.axis([0,2000,-100,100])
 #ax1.autoscale(axis='y')
 #ax2.autoscale(axis='y')
 
-axamp = plt.axes([0.15,0.05, 0.65, 0.03])
-axmean = plt.axes([0.15,0.09, 0.65, 0.03])
-axsigma = plt.axes([0.15,0.13, 0.65, 0.03])
-axlen = plt.axes([0.15,0.17, 0.65, 0.03])
-axgap = plt.axes([0.15,0.21, 0.65, 0.03])
+axDict = dict()
+key_len = len(variables.keys())
+for k in variables.keys():
+    axDict[k] = plt.axes([0.15, key_len*0.04 + 0.09,0.65, 0.03])
+    key_len -= 1
+    
+#axamp = plt.axes([0.15,0.05, 0.65, 0.03])
+#axmean = plt.axes([0.15,0.09, 0.65, 0.03])
+#axsigma = plt.axes([0.15,0.13, 0.65, 0.03])
 
-samp = Slider(axamp, 'Amp', 1, 500, valinit=variables['amp'].value)
-smean = Slider(axmean, 'Mean', 1, 1000.0, valinit=variables['mean'].value)
-ssigma = Slider(axsigma, 'Sigma', 1, 1000.0, valinit=variables['sigma'].value)
+axlen = plt.axes([0.15,0.05, 0.65, 0.03])
+axgap = plt.axes([0.15,0.09, 0.65, 0.03])
+
+slideDict = dict()
+key_len = len(variables.keys())
+for k in variables.keys():
+    slideDict[k] = Slider(axDict[k], k , variables[k].min, variables[k].max, valinit=variables[k].value)
+    
+
+    
+#samp = Slider(axamp, 'Amp', 1, 500, valinit=variables['amp'].value)
+#smean = Slider(axmean, 'Mean', 1, 1000.0, valinit=variables['mean'].value)
+#ssigma = Slider(axsigma, 'Sigma', 1, 1000.0, valinit=variables['sigma'].value)
 slen = Slider(axlen, 'Length', 1, 1000.0, valinit=l0)
 sgap = Slider(axgap, 'Gap', 1, 1000.0, valinit=g0)
 
 def update(val):
-    variables['mean'].value = smean.val
-    variables['sigma'].value = ssigma.val
-    variables['amp'].value = samp.val
+    for k in variables.keys():
+        variables[k].value = slideDict[k].val
+      
+#    variables['sigma'].value = ssigma.val
+#    variables['amp'].value = samp.val
     slen.val = round(slen.val)
     length = slen.val
     sgap.val = round(sgap.val)
@@ -117,10 +152,12 @@ def update(val):
     ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
     ax2.set_ylim(ff.min()-margin,ff.max()+margin)
     fig.canvas.draw_idle()
+
+for k in variables.keys():    
+    slideDict[k].on_changed(update)
     
-samp.on_changed(update)
-smean.on_changed(update)
-ssigma.on_changed(update)
+#smean.on_changed(update)
+#ssigma.on_changed(update)
 slen.on_changed(update)
 sgap.on_changed(update)
 
