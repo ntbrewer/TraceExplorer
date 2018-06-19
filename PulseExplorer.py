@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpt
+from copy import deepcopy as cp
 from matplotlib.widgets import Slider, Button, RadioButtons
 from lmfit import Parameters
 
@@ -16,10 +17,19 @@ def linear_decay(x,a,m,s):
     return(-a*x + m + s*np.random.randn(len(x)))
 
 def square_pulse(x,a,m,s):
-    return(-a*x + m + s*np.random.randn(len(x)))
+    midp = len(x)/2
+    retvec = cp(x)
+    retvec*=0
+    retvec[int(midp+m-s/2):int(midp+m+s/2)]=a
+    return(retvec+np.random.randn(len(x)))
 
-def square_wave(x,a,m,s):
-    return(-a*x + m + s*np.random.randn(len(x)))
+def square_wave(x,a,m,s,g):
+    midp = len(x)/2
+    retvec = cp(x)
+    retvec*=0
+    retvec[int(midp+m-s/2):int(midp+m+s/2)]=a
+    retvec[int(midp+g+m-s/2):int(midp+g+m+s/2)]=-2*a
+    return(retvec+np.random.randn(len(x)))
 
 def triangle_pulse(x,a,m,s):
     return(-a*x + m + s*np.random.randn(len(x)))
@@ -54,6 +64,22 @@ def fxn(x,f_name,params):
         else:
             print("Parameters mismatched to model or not found")
             return(False)
+    elif f_name == "square_pulse":
+        if all( i in params.keys() for i in ('amp','mean','sigma')):
+            return(
+                square_pulse(x,params['amp'].value,params['mean'].value,params['sigma'].value)
+            )
+        else:
+            print("Parameters mismatched to model or not found")
+            return(False)
+    elif f_name == "square_wave":
+        if all( i in params.keys() for i in ('amp','mean','sigma','spacing')):
+            return(
+                square_wave(x,params['amp'].value,params['mean'].value,params['sigma'].value,params['spacing'].value)
+            )
+        else:
+            print("Parameters mismatched to model or not found")
+            return(False)
     elif f_name == "vandle_pulse":
         if all( i in params.keys() for i in ('amp','mean','rise','fall')):
             return(
@@ -79,14 +105,25 @@ g0=200
 norm = 1 #np.sqrt(2*3.14159)*s0
 margin = 2
 
-model = "vandle_pulse"
+#model = "vandle_pulse"
 #model = "linear_decay"
+#model = "square_pulse"
+model = "square_wave"
 variables = Parameters()
 
 if model == "gaussian_noise":
     variables.add_many(('amp',200,True,1,1000,None,None),
            ('mean',300,True,1,1000,None,None),
            ('sigma',150,True,1,1000,None,None))
+elif model == "square_pulse":
+    variables.add_many(('amp',200,True,1,1000,None),
+           ('mean',300,True,1,1000,None),
+           ('sigma',150,True,1,1000,None))
+elif model == "square_wave":
+    variables.add_many(('amp',200,True,1,1000,None),
+           ('mean',300,True,1,1000,None),
+           ('sigma',150,True,1,1000,None),
+           ('spacing',150,True,1,1000,None))
 elif model == "linear decay":
     variables.add_many(('amp',200,True,1,1000,None,None),
            ('mean',300,True,1,1000,None,None),
@@ -137,7 +174,7 @@ sgap = Slider(axgap, 'Gap', 1, 1000.0, valinit=g0)
 
 def update(val):
     for k in variables.keys():
-        variables[k].value = slideDict[k].val
+        variables[k].value = int(slideDict[k].val)
       
 #    variables['sigma'].value = ssigma.val
 #    variables['amp'].value = samp.val
