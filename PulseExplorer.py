@@ -34,9 +34,15 @@ def square_wave(x,a,m,s,g):
 def triangle_pulse(x,a,m,s):
     return(-a*x + m + s*np.random.randn(len(x)))
 
+#def vandle_pulse(x,a,m,r,f):
+#    return(a*np.exp((-x+m)/f)*(1-np.exp((-x)/r))+np.random.randn(len(x)))
 def vandle_pulse(x,a,m,r,f):
-    return(a*np.exp((-x+m)/f)*(1-np.exp(-(x-m)**4)/r)+np.random.randn(len(x)))
-
+    retvec = np.zeros(len(x))
+    midp = int(len(x)/2)
+    retvec[midp:]= a*(np.exp(-x[midp:]/r)-np.exp(-x[midp:]/f)) 
+    #+ np.random.randn(midp) 
+    return( retvec )
+    
 def CFD(times,res,L,G):
     retvec = np.zeros(len(res))
     zidx = times.searchsorted(0)
@@ -105,10 +111,10 @@ g0=200
 norm = 1 #np.sqrt(2*3.14159)*s0
 margin = 2
 
-#model = "vandle_pulse"
+model = "vandle_pulse"
 #model = "linear_decay"
 #model = "square_pulse"
-model = "square_wave"
+#model = "square_wave"
 variables = Parameters()
 
 if model == "gaussian_noise":
@@ -131,8 +137,8 @@ elif model == "linear decay":
 elif model == "vandle_pulse":
     variables.add_many(('amp',20,True,.01,100,None,None),
            ('mean',200,True,1,1000,None,None),
-           ('rise',300,True,10,10000,None,None),
-           ('fall',150,True,10,10000,None,None))    
+           ('rise',300,True,.1,100,None,None),
+           ('fall',150,True,.1,100,None,None))    
              
 pulse = fxn(t,model,variables) #gaussian_noise(t,a0*norm,m0,s0)
 ff = CFD(t,pulse/norm,l0,g0)
@@ -174,7 +180,7 @@ sgap = Slider(axgap, 'Gap', 1, 1000.0, valinit=g0)
 
 def update(val):
     for k in variables.keys():
-        variables[k].value = int(slideDict[k].val)
+        variables[k].value = slideDict[k].val
       
 #    variables['sigma'].value = ssigma.val
 #    variables['amp'].value = samp.val
