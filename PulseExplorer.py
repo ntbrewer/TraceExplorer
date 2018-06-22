@@ -51,10 +51,12 @@ def CFD(times,res,L,G):
     return(retvec)
     
 def tau_adjust(pulse,tau):
+    bls = cp(pulse)
     retvec = cp(pulse)
+    bls -= pulse[:1000].mean()
     for t in range(3,len(pulse)):
-        pz = pulse[:t-1].sum() - pulse[:1000].mean()*(t-1)
-        retvec[t] = pulse[t] + pz/tau 
+        pz = bls[:t-1].sum()
+        retvec[t] += bls[t] + pz/tau 
     return(retvec)
     
 def fxn(x,f_name,params):
@@ -107,8 +109,11 @@ def fxn(x,f_name,params):
         return(False)
         
 #plt.ion()
-ax2 = plt.subplot(3,1,2)
-ax1 = plt.subplot(3,1,1,sharex=ax2)
+ax1 = plt.subplot(3,2,1)
+ax2 = plt.subplot(3,2,2,sharex=ax1)
+ax3 = plt.subplot(3,2,3,sharex=ax1)
+ax4 = plt.subplot(3,2,4,sharex=ax1)
+
 fig = plt.figure(1)
 
 t = np.arange(-2000,2000,1)
@@ -149,11 +154,13 @@ elif model == "vandle_pulse":
            ('fall',150,True,.1,100,None,None))    
              
 pulse = fxn(t,model,variables) #gaussian_noise(t,a0*norm,m0,s0)
-ff = tau_adjust(pulse,t0)
-ff = CFD(t,ff/norm,l0,g0)
+pz = tau_adjust(pulse,t0)
+ff = CFD(t,pz/norm,l0,g0)
 
 l,= ax1.plot(t,pulse,lw=2,color='red')
-ll,= ax2.plot(t,ff,lw=2,color='blue')
+l2,= ax2.plot(t,pz,lw=2,color='k')
+l3,= ax3.plot(t,ff,lw=2,color='blue')
+l4,= ax4.plot(t,ff*0,lw=2,color='green')
 ax2.set_xlim(0,2000)
 #ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
 #ax2.set_ylim(ff.min()-margin,ff.max()+margin)
@@ -200,12 +207,14 @@ def update(val):
     gap = sgap.val
     tau = stau.val
     pulse = fxn(t,model,variables)#gaussian_noise(t,amp*norm,mean,sigma)
-    ff = tau_adjust(pulse,tau)
-    ff = CFD(t,ff/norm,length,gap)
+    pz = tau_adjust(pulse,tau)
+    ff = CFD(t,pz/norm,length,gap)
     l.set_ydata( pulse )
-    ll.set_ydata( ff )
+    l2.set_ydata( pz )
+    l3.set_ydata( ff )
     ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
-    ax2.set_ylim(ff.min()-margin,ff.max()+margin)
+    ax2.set_ylim(pz.min()-margin,pz.max()+margin)
+    ax3.set_ylim(ff.min()-margin,ff.max()+margin)
     fig.canvas.draw_idle()
 
 for k in variables.keys():    
