@@ -50,6 +50,13 @@ def CFD(times,res,L,G):
       retvec[times.searchsorted(times[i])]=(res[i-L+1:i]-res[i-2*L-G+1:i-L-G]).sum()
     return(retvec)
     
+def tau_adjust(pulse,tau):
+    retvec = cp(pulse)
+    for t in range(3,len(pulse)):
+        pz = pulse[:t-1].sum() - pulse[:1000].mean()*(t-1)
+        retvec[t] = pulse[t] + pz/tau 
+    return(retvec)
+    
 def fxn(x,f_name,params):
     """
     generic function wrapper. inputs are model name string and dictionary of variables.
@@ -107,14 +114,15 @@ fig = plt.figure(1)
 t = np.arange(-2000,2000,1)
 l0=100
 g0=200
-
+t0 = 20
 norm = 1 #np.sqrt(2*3.14159)*s0
 margin = 2
 
-model = "vandle_pulse"
+#model = "gaussian_noise"
+#model = "vandle_pulse"
 #model = "linear_decay"
 #model = "square_pulse"
-#model = "square_wave"
+model = "square_wave"
 variables = Parameters()
 
 if model == "gaussian_noise":
@@ -141,7 +149,8 @@ elif model == "vandle_pulse":
            ('fall',150,True,.1,100,None,None))    
              
 pulse = fxn(t,model,variables) #gaussian_noise(t,a0*norm,m0,s0)
-ff = CFD(t,pulse/norm,l0,g0)
+ff = tau_adjust(pulse,t0)
+ff = CFD(t,ff/norm,l0,g0)
 
 l,= ax1.plot(t,pulse,lw=2,color='red')
 ll,= ax2.plot(t,ff,lw=2,color='blue')
@@ -155,7 +164,7 @@ ax2.set_xlim(0,2000)
 axDict = dict()
 key_len = len(variables.keys())
 for k in variables.keys():
-    axDict[k] = plt.axes([0.15, key_len*0.04 + 0.09,0.65, 0.03])
+    axDict[k] = plt.axes([0.15, key_len*0.04 + 0.13,0.65, 0.03])
     key_len -= 1
     
 #axamp = plt.axes([0.15,0.05, 0.65, 0.03])
@@ -164,7 +173,7 @@ for k in variables.keys():
 
 axlen = plt.axes([0.15,0.05, 0.65, 0.03])
 axgap = plt.axes([0.15,0.09, 0.65, 0.03])
-
+axtau = plt.axes([0.15,0.13, 0.65, 0.03])
 slideDict = dict()
 key_len = len(variables.keys())
 for k in variables.keys():
@@ -177,6 +186,7 @@ for k in variables.keys():
 #ssigma = Slider(axsigma, 'Sigma', 1, 1000.0, valinit=variables['sigma'].value)
 slen = Slider(axlen, 'Length', 1, 1000.0, valinit=l0)
 sgap = Slider(axgap, 'Gap', 1, 1000.0, valinit=g0)
+stau = Slider(axtau, 'Tau', .001, 1000.0, valinit=t0)
 
 def update(val):
     for k in variables.keys():
@@ -188,8 +198,10 @@ def update(val):
     length = slen.val
     sgap.val = round(sgap.val)
     gap = sgap.val
+    tau = stau.val
     pulse = fxn(t,model,variables)#gaussian_noise(t,amp*norm,mean,sigma)
-    ff = CFD(t,pulse/norm,length,gap)
+    ff = tau_adjust(pulse,tau)
+    ff = CFD(t,ff/norm,length,gap)
     l.set_ydata( pulse )
     ll.set_ydata( ff )
     ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
@@ -203,5 +215,6 @@ for k in variables.keys():
 #ssigma.on_changed(update)
 slen.on_changed(update)
 sgap.on_changed(update)
+stau.on_changed(update)
 
 plt.show()
