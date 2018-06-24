@@ -34,8 +34,22 @@ def square_wave(x,a,m,s,g):
     retvec[int(midp+g+m-s/2):int(midp+g+m+s/2)]=-2*a
     return(retvec+np.random.randn(len(x)))
 
-def triangle_pulse(x,a,m,s):
-    return(-a*x + m + s*np.random.randn(len(x)))
+def triangle_pulse(x,a,w,m):
+    retvec = np.zeros(len(x))
+    midp = len(x)/2
+    d=a
+    b=c=w
+    retvec[int(midp+m):int(midp+m)+w/2] += d*(x[int(midp+m):]-m) + b 
+    retvec[int(midp+m)+w/2:int(midp+m)+w] += -d*(x[int(midp+m):]-m) + c 
+    return(retvec+np.random.randn(len(x)))
+
+def triangle_wave(x,a,w,m,s):
+    retvec = np.zeros(len(x))
+    d=a
+    b=c=w
+    retvec[int(midp+m):int(midp+m)+w/2] += d*(x[int(midp+m):]-m) + b 
+    retvec[int(midp+m)+w/2:int(midp+m)+w] += -d*(x[int(midp+m):]-m) + c 
+    return(retvec+np.random.randn(len(x)))
 
 def vandle_pulse(x,a,m,r,f):
     retvec = np.zeros(len(x))
