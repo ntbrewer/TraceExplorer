@@ -34,15 +34,13 @@ def square_wave(x,a,m,s,g):
 def triangle_pulse(x,a,m,s):
     return(-a*x + m + s*np.random.randn(len(x)))
 
-#def vandle_pulse(x,a,m,r,f):
-#    return(a*np.exp((-x+m)/f)*(1-np.exp((-x)/r))+np.random.randn(len(x)))
 def vandle_pulse(x,a,m,r,f):
     retvec = np.zeros(len(x))
-    midp = int(len(x)/2)
-    retvec[midp:]= a*(np.exp(-x[midp:]/r)-np.exp(-x[midp:]/f)) 
-    #+ np.random.randn(midp) 
+    midp = int(len(x)/2+m)
+    retvec[midp:]= a**2/(f-r)*(np.exp(-(x[midp:]-m)/f)-np.exp(-(x[midp:]-m)/r)) 
+    retvec += np.random.randn(len(x)) 
     return( retvec )
-    
+        
 def CFD(times,res,L,G):
     retvec = np.zeros(len(res))
     zidx = times.searchsorted(0)
