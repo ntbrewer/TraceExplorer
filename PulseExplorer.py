@@ -96,7 +96,7 @@ def fxn(x,f_name,params):
     elif f_name == "vandle_pulse":
         if all( i in params.keys() for i in ('amp','mean','rise','fall')):
             return(
-                vandle_pulse(x,params['amp'].value,params['mean'].value,params['rise'].value,params['rise'].value)
+                vandle_pulse(x,params['amp'].value,params['mean'].value,params['rise'].value,params['fall'].value)
             )
         else:
             print("Parameters mismatched to model or not found")
@@ -122,10 +122,10 @@ norm = 1 #np.sqrt(2*3.14159)*s0
 margin = 2
 
 #model = "gaussian_noise"
-#model = "vandle_pulse"
+model = "vandle_pulse"
 #model = "linear_decay"
 #model = "square_pulse"
-model = "square_wave"
+#model = "square_wave"
 variables = Parameters()
 
 if model == "gaussian_noise":
@@ -146,10 +146,10 @@ elif model == "linear decay":
            ('mean',300,True,1,1000,None,None),
            ('sigma',150,True,1,1000,None,None))
 elif model == "vandle_pulse":
-    variables.add_many(('amp',20,True,.01,100,None,None),
-           ('mean',200,True,1,1000,None,None),
-           ('rise',300,True,.1,100,None,None),
-           ('fall',150,True,.1,100,None,None))    
+    variables.add_many(('amp',50,True,.01,100,None),
+           ('mean',200,True,1,1000,None),
+           ('rise',10,True,.1,200,None),
+           ('fall',150,True,.1,200,None))  
              
 pulse = fxn(t,model,variables) #gaussian_noise(t,a0*norm,m0,s0)
 pz = tau_adjust(pulse,t0)
