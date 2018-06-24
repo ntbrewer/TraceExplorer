@@ -13,8 +13,11 @@ def gaussian_noise(x,a,m,s):
     #return((a/np.sqrt(2*3.14159)/s * np.exp(-0.5 * (x-m) * (x-m) / s**2) )+200+.1*np.random.randn(len(x)))
     return((a * np.exp(-0.5 * (x-m) * (x-m) / s**2) )+200+np.random.randn(len(x)))
 
-def linear_decay(x,a,m,s):
-    return(-a*x + m + s*np.random.randn(len(x)))
+def linear_cusp(x,a,b,m):
+    retvec = np.zeros(len(x))
+    midp = len(x)/2
+    retvec[int(midp+m):] += a*(x[int(midp+m):]-m) + b 
+    return(retvec+np.random.randn(len(x)))
 
 def square_pulse(x,a,m,s):
     midp = len(x)/2
@@ -69,10 +72,10 @@ def fxn(x,f_name,params):
         else:
             print("Parameters mismatched to model or not found")
             return(False)
-    elif f_name == "linear_decay":
-        if all( i in params.keys() for i in ('amp','mean','sigma')):
+    elif f_name == "linear_cusp":
+        if all( i in params.keys() for i in ('slope','offset','start')):
             return(
-                linear_decay(x,params['amp'].value,params['mean'].value,params['sigma'].value)
+                linear_cusp(x,params['slope'].value,params['offset'].value,params['start'].value)
             )
         else:
             print("Parameters mismatched to model or not found")
@@ -122,16 +125,16 @@ norm = 1 #np.sqrt(2*3.14159)*s0
 margin = 2
 
 #model = "gaussian_noise"
-model = "vandle_pulse"
-#model = "linear_decay"
+#model = "vandle_pulse"
+model = "linear_cusp"
 #model = "square_pulse"
 #model = "square_wave"
 variables = Parameters()
 
 if model == "gaussian_noise":
-    variables.add_many(('amp',200,True,1,1000,None,None),
-           ('mean',300,True,1,1000,None,None),
-           ('sigma',150,True,1,1000,None,None))
+    variables.add_many(('amp',200,True,1,1000,None),
+           ('mean',300,True,1,1000,None),
+           ('sigma',150,True,1,1000,None))
 elif model == "square_pulse":
     variables.add_many(('amp',200,True,1,1000,None),
            ('mean',300,True,1,1000,None),
@@ -141,10 +144,10 @@ elif model == "square_wave":
            ('mean',300,True,1,1000,None),
            ('sigma',150,True,1,1000,None),
            ('spacing',150,True,1,1000,None))
-elif model == "linear decay":
-    variables.add_many(('amp',200,True,1,1000,None,None),
-           ('mean',300,True,1,1000,None,None),
-           ('sigma',150,True,1,1000,None,None))
+elif model == "linear_cusp":
+    variables.add_many(('slope',1,True,-20,20,None),
+           ('offset',300,True,1,1000,None),
+           ('start',150,True,1,1000,None))
 elif model == "vandle_pulse":
     variables.add_many(('amp',50,True,.01,100,None),
            ('mean',200,True,1,1000,None),
