@@ -6,3 +6,4 @@ Example of a Double Exponential Pulse with noise (red), Pole-zero / Tau Correcte
 
 TBD: add to PulseExplorer more functions as requested. 
 move TraceExplorer with tau correction to Pyspectr.
+Fix sliders to be int or log sliders
