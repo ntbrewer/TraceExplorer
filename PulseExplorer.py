@@ -37,18 +37,19 @@ def square_wave(x,a,m,s,g):
 def triangle_pulse(x,a,w,m):
     retvec = np.zeros(len(x))
     midp = len(x)/2
-    d=a
-    b=c=w
-    retvec[int(midp+m):int(midp+m)+w/2] += d*(x[int(midp+m):]-m) + b 
-    retvec[int(midp+m)+w/2:int(midp+m)+w] += -d*(x[int(midp+m):]-m) + c 
+    d = a*2/w
+    retvec[int(midp+m-w/2):int(midp+m)] += d*(x[int(midp+m-w/2):int(midp+m)] - m - x[midp] +w/2)  
+    retvec[int(midp+m):int(midp+m+w/2)] += -d*(x[int(midp+m):int(midp+m+w/2)] - m - x[midp]) + a 
     return(retvec+np.random.randn(len(x)))
 
 def triangle_wave(x,a,w,m,s):
     retvec = np.zeros(len(x))
-    d=a
-    b=c=w
-    retvec[int(midp+m):int(midp+m)+w/2] += d*(x[int(midp+m):]-m) + b 
-    retvec[int(midp+m)+w/2:int(midp+m)+w] += -d*(x[int(midp+m):]-m) + c 
+    midp = len(x)/2
+    d = a*2/w
+    retvec[int(midp+m-w/2):int(midp+m)] += d*(x[int(midp+m-w/2):int(midp+m)] - m - x[midp] +w/2)  
+    retvec[int(midp+m):int(midp+m+w/2)] += -d*(x[int(midp+m):int(midp+m+w/2)] - m - x[midp]) + a 
+    retvec[int(midp+m+w/2+s):int(midp+m+s+w)] += -d*(x[int(midp+m-w/2):int(midp+m)] - m - x[midp] +w/2)  
+    retvec[int(midp+m+s+w):int(midp+m+3*w/2+s)] +=  d*(x[int(midp+m):int(midp+m+w/2)] - m - x[midp]) - a 
     return(retvec+np.random.randn(len(x)))
 
 def vandle_pulse(x,a,m,r,f):
@@ -58,7 +59,7 @@ def vandle_pulse(x,a,m,r,f):
     retvec += np.random.randn(len(x)) 
     return( retvec )
         
-def CFD(times,res,L,G):
+def trap_filter(times,res,L,G):
     retvec = np.zeros(len(res))
     zidx = times.searchsorted(0)
     for i in range(zidx,len(times)):
@@ -73,6 +74,13 @@ def tau_adjust(pulse,tau):
         pz = bls[:t-1].sum()
         retvec[t] += bls[t] + pz/tau 
     return(retvec)
+
+def zero_crossing(trap):
+    delay = cp(trap)
+    td = 20
+    cf = .8
+    delay[:-td] += -cf*trap[td:] 
+    return(delay)
     
 def fxn(x,f_name,params):
     """
@@ -110,6 +118,22 @@ def fxn(x,f_name,params):
         else:
             print("Parameters mismatched to model or not found")
             return(False)
+    elif f_name == "triangle_pulse":
+        if all( i in params.keys() for i in ('amp','width','mean')):
+            return(
+                triangle_pulse(x,params['amp'].value,params['width'].value,params['mean'].value)
+            )
+        else:
+            print("Parameters mismatched to model or not found")
+            return(False)
+    elif f_name == "triangle_wave":
+        if all( i in params.keys() for i in ('amp','width','mean','spacing')):
+            return(
+                triangle_wave(x,params['amp'].value,params['width'].value,params['mean'].value,params['spacing'].value)
+            )
+        else:
+            print("Parameters mismatched to model or not found")
+            return(False)
     elif f_name == "vandle_pulse":
         if all( i in params.keys() for i in ('amp','mean','rise','fall')):
             return(
@@ -140,9 +164,13 @@ margin = 2
 
 #model = "gaussian_noise"
 #model = "vandle_pulse"
-model = "linear_cusp"
+#model = "linear_cusp"
 #model = "square_pulse"
 #model = "square_wave"
+#model = "triangle_pulse"
+model = "triangle_wave"
+
+
 variables = Parameters()
 
 if model == "gaussian_noise":
@@ -158,6 +186,15 @@ elif model == "square_wave":
            ('mean',300,True,1,1000,None),
            ('sigma',150,True,1,1000,None),
            ('spacing',150,True,1,1000,None))
+elif model == "triangle_pulse":
+    variables.add_many(('amp',200,True,1,1000,None),
+           ('width',300,True,1,1000,None),
+           ('mean',200,True,1,1000,None))
+elif model == "triangle_wave":
+    variables.add_many(('amp',200,True,1,1000,None),
+           ('width',300,True,1,1000,None),
+           ('mean',200,True,1,1000,None),
+           ('spacing',150,True,1,1000,None))
 elif model == "linear_cusp":
     variables.add_many(('slope',1,True,-20,20,None),
            ('offset',300,True,1,1000,None),
@@ -170,12 +207,18 @@ elif model == "vandle_pulse":
              
 pulse = fxn(t,model,variables) #gaussian_noise(t,a0*norm,m0,s0)
 pz = tau_adjust(pulse,t0)
-ff = CFD(t,pz/norm,l0,g0)
+ff = trap_filter(t,pz/norm,l0,g0)
+zc = zero_crossing(ff)
 
 l,= ax1.plot(t,pulse,lw=2,color='red')
+ax1.legend(['Input Pulse'])
 l2,= ax2.plot(t,pz,lw=2,color='k')
+ax2.legend(['Pole-zero/Tau Corrected'])
 l3,= ax3.plot(t,ff,lw=2,color='blue')
-l4,= ax4.plot(t,ff*0,lw=2,color='green')
+ax3.legend(['Trapezoidal Filter Output'])
+l4,= ax4.plot(t,zc,lw=2,color='green')
+ax4.legend(['CFD Output'])
+#l5,= ax4.plot(t[20:],zc[1],lw=2,color='purple')
 ax2.set_xlim(0,2000)
 #ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
 #ax2.set_ylim(ff.min()-margin,ff.max()+margin)
@@ -223,13 +266,16 @@ def update(val):
     tau = stau.val
     pulse = fxn(t,model,variables)#gaussian_noise(t,amp*norm,mean,sigma)
     pz = tau_adjust(pulse,tau)
-    ff = CFD(t,pz/norm,length,gap)
+    ff = trap_filter(t,pz/norm,length,gap)
+    zc = zero_crossing(ff)
     l.set_ydata( pulse )
     l2.set_ydata( pz )
     l3.set_ydata( ff )
+    l4.set_ydata( zc )
     ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
     ax2.set_ylim(pz.min()-margin,pz.max()+margin)
     ax3.set_ylim(ff.min()-margin,ff.max()+margin)
+    ax4.set_ylim(zc.min()-margin,zc.max()+margin)
     fig.canvas.draw_idle()
 
 for k in variables.keys():    
