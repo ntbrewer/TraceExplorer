@@ -117,9 +117,9 @@ def update(val):
     #mean = smean.val
     #sigma = ssigma.val
     #amp = samp.val
-    slen.val = round(slen.val)
+    slen.val = int(slen.val)
     length = slen.val
-    sgap.val = round(sgap.val)
+    sgap.val = int(sgap.val)
     gap = sgap.val
     sid.val = int(sid.val)
     trace_id = sid.val

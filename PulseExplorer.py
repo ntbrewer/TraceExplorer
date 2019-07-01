@@ -166,9 +166,9 @@ margin = 2
 #model = "vandle_pulse"
 #model = "linear_cusp"
 #model = "square_pulse"
-#model = "square_wave"
+model = "square_wave"
 #model = "triangle_pulse"
-model = "triangle_wave"
+#model = "triangle_wave"
 
 
 variables = Parameters()
@@ -259,9 +259,9 @@ def update(val):
       
 #    variables['sigma'].value = ssigma.val
 #    variables['amp'].value = samp.val
-    slen.val = round(slen.val)
+    slen.val = int(slen.val)
     length = slen.val
-    sgap.val = round(sgap.val)
+    sgap.val = int(sgap.val)
     gap = sgap.val
     tau = stau.val
     pulse = fxn(t,model,variables)#gaussian_noise(t,amp*norm,mean,sigma)
